@@ -23,7 +23,8 @@ class ${project.name.capitalize()}Spider(scrapy.Spider):
 
     % for rule_field in rule_fields:
     % if rule_field.callback_func:
-    def ${rule_field.callback_func}(self, response):
+    ## def ${rule_field.callback_func}(self, response):
+    def parse(self, response):
         self.logger.info('Crawl from: '.format(response.url))
         item = ${rule_field.item_name.capitalize()}Item()
         % for field in rule_field.fields:
@@ -41,16 +42,23 @@ class ${project.name.capitalize()}Spider(scrapy.Spider):
     % endfor
 
     % for field in rule_field.fields:
-    % if field.name == "url":
-    continue
-    % elif field.name == "image_urls":
+    % if field.name != "url":
+    % if project.spider.download_image and field.name == "image_urls":
     def get_${field.name}(self, response):
         ${field.name} = response.xpath('${field.path}').extract()
         return ${field.name} if ${field.name} else []
     % else:
     def get_${field.name}(self, response):
         ${field.name} = response.xpath('${field.path}').extract()
+        % if field.type != 'str':
+        % if field.dup_filter is True:
+        return list(set(${field.name}))
+        % else:
+        return ${field.name}
+        % endif
+        % else:
         return ''.join(${field.name}).strip()
+        % endif
     % endif
-
+    % endif
     % endfor

@@ -46,10 +46,11 @@ class TestCase(unittest.TestCase):
                    'image_urls': 'image_srcs',
                    'images': 'images',
                    'spider': Spider({'name': 'taihe',
-                                     'result_dir':'./result',
+                                     'result_dir': './result',
                                      'domain': None,
-                                     'custom_settings':None,
-                                     'start_urls':'http://www.baidu.com'})
+                                     'download_image': False,
+                                     'custom_settings': None,
+                                     'start_urls': 'http://music.taihe.com/artist'})
                    }
         self.project = Project(project)
         start_project(self.project)
@@ -74,12 +75,14 @@ class TestCase(unittest.TestCase):
 
     def test_template(self):
         out_dir = os.path.join(OUTPUT_DIR, self.project.name)
-        fields = [Field({'name': 'url', 'path':'//link'}), Field({'name': 'singerName', 'path':'//ul[@class="container"]//a/@title'})]
+        fields = [Field({'name': 'url', 'path': '//link'}),
+                  Field({'name': 'singerName', 'path': '//ul[@class="container"]//a[contains(@href,"artist")]/@title'})]
         rule = Rule({'rule': 'TaiHe',
                      'fields': fields,
                      'item_name': 'TaiHe',
                      'callback_func': 'parse_item'})
-        render_template({'rule_fields': [rule], 'project': self.project}, 'template/spiders/template.py.tpl', self.project.name + "/spiders/template.py",
+        render_template({'rule_fields': [rule], 'project': self.project}, 'template/spiders/template.py.tpl',
+                        self.project.name + "/spiders/template.py",
                         out_dir)
 
 

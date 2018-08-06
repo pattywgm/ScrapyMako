@@ -34,14 +34,30 @@ class ImagesPipeline(ImagesPipeline):
 class JsonWriterPipeline(object):
 
     def open_spider(self, spider):
-        self.file = open('${project.spider.name}_{}.json'.format(today), 'w')
+        self.file = open('${project.spider.result_dir}/${project.spider.name}_{}.json'.format(today), 'w')
 
     def close_spider(self, spider):
         self.file.close()
 
     def process_item(self, item, spider):
-        line = json.dumps(dict(item)) + "\n"
-        self.file.write(line)
+        result = {
+            'meta_version': spider.meta_version,
+            'meta_updated': datetime.datetime.now().isoformat()[:19],
+            'download_config': {
+                'url': item["url"],
+                'method': 'GET'
+            },
+            'download_data': {
+                'parsed_data': {},
+                'raw_data': {},
+            }
+        }
+
+        for k in item.keys():
+            if k == "url":
+                continue
+            result['download_data']['parsed_data'][k] = item[k]
+        self.file.write(json.dumps(result, ensure_ascii=False).encode('utf-8') + '\n')
         return item
 
 

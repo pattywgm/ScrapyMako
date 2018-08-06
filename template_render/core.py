@@ -23,7 +23,8 @@ def add_zipfile(source_dir, output_filename):
 class BaseTemplate(object):
 
     def __init__(self, template_name, output_name, output_dir, template_dir="templates"):
-        self.template = Template(filename=os.path.join(settings.BASE_DIR, template_dir, template_name), output_encoding="utf-8")
+        self.template = Template(filename=os.path.join(settings.BASE_DIR, template_dir, template_name),
+                                 output_encoding="utf-8")
         self.output_filename = os.path.join(output_dir, output_name)
 
     def render(self, *args, **kwargs):
@@ -63,6 +64,15 @@ def start_project(project, rule_fields, output_dir=settings.OUTPUT_DIR):
     if os.path.exists(project_dir):
         shutil.rmtree(project_dir)
     os.makedirs(project_dir)
+    # process result_dir, make dir if not exist
+    result_dir = project.spider.result_dir
+    if result_dir.startswith('.'):
+        result_dir = os.path.join(project_dir, result_dir[2:])
+    else:
+        result_dir = result_dir
+    if not os.path.exists(result_dir):
+        os.makedirs(result_dir)
+    project.spider.result_dir = result_dir
     sub_dir = os.path.join(project_dir, project.name)
     if os.path.exists(sub_dir):
         shutil.rmtree(sub_dir)
@@ -72,7 +82,35 @@ def start_project(project, rule_fields, output_dir=settings.OUTPUT_DIR):
     open(os.path.join(sub_dir, "__init__.py"), "w").close()
     open(os.path.join(sub_dir, "middlewares", "__init__.py"), "w").close()
     open(os.path.join(sub_dir, "spiders", "__init__.py"), "w").close()
-    project['sub_dir'] = sub_dir
+    project.sub_dir = sub_dir
     generate_crawl_template(project, rule_fields, project_dir)
 
     # add_zipfile(os.path.join(output_dir, project["name"]), project_dir + ".zip")
+
+
+if __name__ == '__main__':
+    from settings import *
+    from model import *
+
+    project = {'name': 'TaiHe',
+               'pipelines': ['JsonWriterPipeline'],
+               'download_delay': 1,
+               'image_urls': 'image_srcs',
+               'images': 'images',
+               'spider': Spider({'name': 'taihe',
+                                 'result_dir': './result',
+                                 'domain': None,
+                                 'download_image': False,
+                                 'custom_settings': None,
+                                 'start_urls': 'http://music.taihe.com/artist'})
+               }
+    project = Project(project)
+    # out_dir = os.path.join(OUTPUT_DIR, project.name)
+    fields = [Field({'name': 'url', 'path': '//link', 'type': 'str'}),
+              Field({'name': 'singerName', 'path': '//ul[@class="container"]//a[contains(@href,"artist")]/@title',
+                     'type': 'list', 'dup_filter': True})]
+    rule = Rule({'rule': 'TaiHe',
+                 'fields': fields,
+                 'item_name': 'TaiHe',
+                 'callback_func': 'parse_item'})
+    start_project(project, [rule])
